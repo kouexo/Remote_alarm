@@ -24,6 +24,7 @@ char msg[MSG_BUFFER_SIZE];
 int value = 0;
 bool ledState = false;
 
+// アラーム音のメロディ設定
 #define LEDC_CHANNEL_0 0 
 #define LEDC_TIMER_13_BIT 13
 #define LEDC_BASE_FREQ 5000
@@ -44,6 +45,7 @@ void soundTaskMethod();
 
 Task soundTask(0, TASK_FOREVER, &soundTaskMethod);
 
+// MQTTサーバーへの接続を再試行する関数
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
@@ -61,13 +63,15 @@ void reconnect() {
   }
 }
 
+// アラーム音を鳴らすタスクのメソッド
 void soundTaskMethod() {
   for (int thisNote = 0; thisNote < 10; thisNote++) {
     ledcWriteNote(LEDC_CHANNEL_0, (note_t)melody[thisNote], noteOctaves[thisNote]);
     int pauseBetweenNotes = 1000 / noteDurations[thisNote] * 1.30;
     delay(pauseBetweenNotes);
     ledcWriteTone(LEDC_CHANNEL_0, 0);
-    
+
+    // スイッチが押されたらアラームを停止
     if (digitalRead(SW_PIN) == HIGH) {
       ledcWriteTone(LEDC_CHANNEL_0, 0);
       soundTask.disable();
@@ -77,8 +81,8 @@ void soundTaskMethod() {
 }
 
 void playToneTask(void * parameter) {
-  for (;;) {
-    if (ledState) {
+  for (;;) { // 無限ループ
+    if (ledState) { // ledStateがtrueの場合、音を再生
       for (int thisNote = 0; thisNote < 10; thisNote++) {
         if (shouldStopPlaying) {
           shouldStopPlaying = false;
@@ -96,6 +100,7 @@ void playToneTask(void * parameter) {
   }
 }
 
+// wifi接続設定
 void setup_wifi() {
   delay(10);
   Serial.println();
@@ -127,6 +132,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
 
+  // ペイロードの最初の文字が '1' ならサウンドタスクを有効化、そうでなければ無効化
   if ((char)payload[0] == '1') {
     soundTask.enable();
   } else {
