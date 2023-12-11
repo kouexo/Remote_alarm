@@ -1,3 +1,6 @@
+/*
+送信側（おかん）
+*/
 #include <WiFi.h>
 #include <PubSubClient.h>
 
@@ -60,23 +63,26 @@ void setup() {
 
 void loop() {
   if (!client.connected()) {
-    reconnect();
+    reconnect();  // MQTTクライアントが接続されていない場合、再接続
   }
-  client.loop();
+  client.loop();  // MQTTクライアントの継続的な処理
 
-  static bool prevSwitchState = false;
-  bool currentSwitchState = digitalRead(SW_PIN);
+  // スイッチの状態を監視
+  static bool prevSwitchState = false;  // 前回のスイッチの状態を保存
+  bool currentSwitchState = digitalRead(SW_PIN);  // 現在のスイッチの状態を取得
 
+  // スイッチの状態が変わった場合にデバウンス処理
   if (currentSwitchState != prevSwitchState) {
     delay(DEBOUNCE_DELAY);
     currentSwitchState = digitalRead(SW_PIN);
   }
 
+  // スイッチの状態が変わった場合、MQTTブローカーにメッセージを送信
   if (currentSwitchState != prevSwitchState) {
     prevSwitchState = currentSwitchState;
 
     if (currentSwitchState == HIGH) {
-      client.publish("------", "1");
+      client.publish("------", "1");  // スイッチがONの場合、"1"を送信
     }
   }
 }
