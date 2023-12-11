@@ -45,6 +45,29 @@ void soundTaskMethod();
 
 Task soundTask(0, TASK_FOREVER, &soundTaskMethod);
 
+// wifi接続設定
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  randomSeed(micros());
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
 // MQTTサーバーへの接続を再試行する関数
 void reconnect() {
   while (!client.connected()) {
@@ -60,6 +83,24 @@ void reconnect() {
       Serial.println(" try again in 5 seconds");
       delay(5000);
     }
+  }
+}
+
+// MQTTブローカーからメッセージが届いたときに呼び出される
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  // ペイロードの最初の文字が '1' ならサウンドタスクを有効化、そうでなければ無効化
+  if ((char)payload[0] == '1') {
+    soundTask.enable();
+  } else {
+    soundTask.disable();
   }
 }
 
@@ -97,46 +138,6 @@ void playToneTask(void * parameter) {
     } else {
       vTaskDelay(100 / portTICK_PERIOD_MS);
     }
-  }
-}
-
-// wifi接続設定
-void setup_wifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  randomSeed(micros());
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-// MQTTブローカーからメッセージが届いたときに呼び出される
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  // ペイロードの最初の文字が '1' ならサウンドタスクを有効化、そうでなければ無効化
-  if ((char)payload[0] == '1') {
-    soundTask.enable();
-  } else {
-    soundTask.disable();
   }
 }
 
